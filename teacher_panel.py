@@ -1,134 +1,17 @@
-# from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel
-# from database import get_all_results
-# from charts import ChartCanvas
+from PyQt5.QtWidgets import (
+    QWidget, QLabel, QLineEdit, QPushButton,
+    QVBoxLayout, QHBoxLayout, QTableWidget,
+    QTableWidgetItem, QTabWidget, QFrame,
+    QComboBox, QCheckBox, QGraphicsDropShadowEffect
+)
+from PyQt5.QtGui import QFont, QPalette, QColor, QIcon, QLinearGradient, QBrush
+from PyQt5.QtCore import Qt, QDate
 
-# class TeacherPanel(QWidget):
-#     def __init__(self):
-#         super().__init__()
-#         self.setWindowTitle("Teacher Dashboard")
-#         self.resize(800,600)
-
-#         layout = QVBoxLayout(self)
-#         title = QLabel("All Students Performance")
-#         layout.addWidget(title)
-
-#         chart = ChartCanvas()
-#         layout.addWidget(chart)
-
-#         data = get_all_results()
-#         students = {}
-#         for name, subject, marks in data:
-#             students[name] = students.get(name, 0) + int(marks)
-
-#         chart.bar_chart(
-#             list(students.keys()),
-#             list(students.values()),
-#             "Total Marks of Students"
-#         )
-
-# from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QHBoxLayout, QFrame
-# from PyQt5.QtGui import QFont, QColor, QPalette
-# from PyQt5.QtCore import Qt
-# from database import get_all_results
-# from charts import ChartCanvas
-
-# class TeacherPanel(QWidget):
-#     def __init__(self):
-#         super().__init__()
-#         self.setWindowTitle("Teacher Dashboard")
-#         self.resize(900, 700)
-
-#         # Overall layout
-#         layout = QVBoxLayout(self)
-#         layout.setSpacing(15)
-#         layout.setContentsMargins(20, 20, 20, 20)
-
-#         # Title
-#         title = QLabel("Students Performance Overview")
-#         title.setFont(QFont("Arial", 22, QFont.Bold))
-#         title.setAlignment(Qt.AlignCenter)
-#         title.setStyleSheet("color: #2c3e50;")
-#         layout.addWidget(title)
-
-#         # Chart
-#         chart = ChartCanvas()
-#         layout.addWidget(chart, stretch=2)
-
-#         # Fetch data
-#         data = get_all_results()  # [(name, subject, marks, class/group)]
-#         students = {}
-#         details = {}
-#         for name, subject, marks, class_group in data:
-#             students[name] = students.get(name, 0) + int(marks)
-#             details[name] = class_group  # Save class/group info
-
-#         # Chart with colors
-#         colors = ["#3498db", "#e74c3c", "#2ecc71", "#f1c40f", "#9b59b6", "#1abc9c"]
-#         chart.bar_chart(
-#             list(students.keys()),
-#             list(students.values()),
-#             "Total Marks of Students",
-#             colors=colors
-#         )
-
-#         # Students cards below chart
-#         cards_layout = QHBoxLayout()
-#         cards_layout.setSpacing(15)
-
-#         for i, (name, total) in enumerate(students.items()):
-#             card = QFrame()
-#             card.setFixedSize(150, 120)
-#             card.setStyleSheet(f"""
-#                 QFrame {{
-#                     background-color: {colors[i % len(colors)]};
-#                     border-radius: 15px;
-#                 }}
-#                 QLabel {{
-#                     color: white;
-#                 }}
-#             """)
-#             v = QVBoxLayout(card)
-#             v.setAlignment(Qt.AlignCenter)
-
-#             lbl_name = QLabel(name)
-#             lbl_name.setFont(QFont("Arial", 12, QFont.Bold))
-#             lbl_name.setAlignment(Qt.AlignCenter)
-
-#             lbl_marks = QLabel(f"{total} Marks")
-#             lbl_marks.setFont(QFont("Arial", 14, QFont.Bold))
-#             lbl_marks.setAlignment(Qt.AlignCenter)
-
-#             lbl_class = QLabel(f"Class: {details[name]}")
-#             lbl_class.setFont(QFont("Arial", 10))
-#             lbl_class.setAlignment(Qt.AlignCenter)
-
-#             v.addWidget(lbl_name)
-#             v.addWidget(lbl_marks)
-#             v.addWidget(lbl_class)
-
-#             cards_layout.addWidget(card)
-
-#         layout.addLayout(cards_layout, stretch=1)
-
-#         # Set overall background
-#         palette = self.palette()
-#         palette.setColor(QPalette.Window, QColor("#ecf0f1"))
-#         self.setPalette(palette)
-#         self.setAutoFillBackground(True)
-
-
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QComboBox, QPushButton, QFrame, QHBoxLayout
-from PyQt5.QtGui import QFont, QPalette, QColor
-from PyQt5.QtCore import Qt
-from matplotlib.pyplot import title
 from student_panel import StudentPanel
-from database import get_all_students, get_all_results
-from charts import ChartCanvas
-from PyQt5.QtWidgets import QLabel, QGraphicsDropShadowEffect
-from PyQt5.QtGui import QFont, QPalette, QColor, QLinearGradient, QBrush
-from PyQt5.QtCore import Qt
+from database import get_db, get_all_classes, get_students_by_class
 
-# Gradient label class
+
+# ---------------- GRADIENT LABEL ----------------
 class GradientLabel(QLabel):
     def __init__(self, text):
         super().__init__(text)
@@ -143,50 +26,51 @@ class GradientLabel(QLabel):
             }
         """)
 
-        # Drop shadow / glow
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(20)
-        shadow.setOffset(0,0)
-        shadow.setColor(QColor("#3498db"))  # glow color
+        shadow.setOffset(0, 0)
+        shadow.setColor(QColor("#3498db"))
         self.setGraphicsEffect(shadow)
 
-        # Gradient text using QPalette
+        gradient = QLinearGradient(0, 0, 0, 50)
+        gradient.setColorAt(0, QColor("#3498db"))
+        gradient.setColorAt(1, QColor("#9b59b6"))
         palette = self.palette()
-        gradient = QLinearGradient(0, 0, 0, self.height())
-        gradient.setColorAt(0, QColor("#3498db"))  # Top color
-        gradient.setColorAt(1, QColor("#9b59b6"))  # Bottom color
-        brush = QBrush(gradient)
-        palette.setBrush(QPalette.WindowText, brush)
+        palette.setBrush(QPalette.WindowText, QBrush(gradient))
         self.setPalette(palette)
 
+
+# ---------------- TEACHER PANEL ----------------
 class TeacherPanel(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Teacher Dashboard")
-        self.resize(900, 700)
+        self.resize(950, 720)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(20)
+        main_layout.setSpacing(15)
 
-        title = GradientLabel("Teacher Dashboard - Student Overview")
-        main_layout.addWidget(title)
+        main_layout.addWidget(GradientLabel("Teacher Dashboard - Student Overview"))
 
-        # Dropdown to select student
-        select_layout = QHBoxLayout()
-        lbl = QLabel("Select Student:")
-        lbl.setFont(QFont("Arial", 14))
-        select_layout.addWidget(lbl)
+        # -------- CLASS / STUDENT BAR --------
+        bar = QFrame()
+        bar.setStyleSheet("background:white; border-radius:15px;")
+        bar_layout = QHBoxLayout(bar)
 
+        bar_layout.addWidget(QLabel("Select Class:"))
+        self.class_combo = QComboBox()
+        self.class_combo.addItem("Select Class")
+        self.class_combo.addItems(get_all_classes())
+        self.class_combo.currentIndexChanged.connect(self.load_students_by_class)
+        bar_layout.addWidget(self.class_combo)
+
+        bar_layout.addWidget(QLabel("Select Student:"))
         self.student_combo = QComboBox()
-        students = get_all_students()  # returns list of student names from DB
-        self.student_combo.addItems(students)
-        self.student_combo.setFont(QFont("Arial", 12))
-        select_layout.addWidget(self.student_combo)
+        bar_layout.addWidget(self.student_combo)
 
-        btn = QPushButton("Open Dashboard")
-        btn.setFont(QFont("Arial", 12, QFont.Bold))
-        btn.setStyleSheet("""
+        open_btn = QPushButton("Open Dashboard")
+        open_btn.setFont(QFont("Arial", 12, QFont.Bold))
+        open_btn.setStyleSheet("""
             QPushButton {
                 background-color:#3498db;
                 color:white;
@@ -197,38 +81,158 @@ class TeacherPanel(QWidget):
                 background-color:#2980b9;
             }
         """)
-        btn.clicked.connect(self.open_student_panel)
-        select_layout.addWidget(btn)
+        open_btn.clicked.connect(self.open_student_panel)
+        bar_layout.addWidget(open_btn)
+        
+       
+        main_layout.addWidget(bar)
 
-        main_layout.addLayout(select_layout)
+        # -------- TABS --------
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self.results_tab(), "Results")
+        self.tabs.addTab(self.attendance_tab(), "Attendance")
+        main_layout.addWidget(self.tabs)
 
-        # Optional: Overall chart (all students total marks)
-        chart_card = QFrame()
-        chart_card.setStyleSheet("QFrame {background:white; border-radius:15px;}")
-        chart_layout = QVBoxLayout(chart_card)
-
-        chart = ChartCanvas()
-        chart_layout.addWidget(chart)
-
-        # Aggregate all students marks
-        data = get_all_results()  # [(name, subject, marks, group_name)]
-        students_marks = {}
-        for name, subject, marks, group_name in data:
-            students_marks[name] = students_marks.get(name, 0) + int(marks)
-
-        colors = ["#3498db", "#e74c3c", "#2ecc71", "#f1c40f", "#9b59b6", "#1abc9c"]
-        chart.bar_chart(list(students_marks.keys()), list(students_marks.values()), "Total Marks of Students", colors=colors)
-
-        main_layout.addWidget(chart_card)
-
-        # Set background
+        # -------- BACKGROUND --------
         palette = self.palette()
         palette.setColor(QPalette.Window, QColor("#ecf0f1"))
         self.setPalette(palette)
         self.setAutoFillBackground(True)
 
+    # ================= CLASS → STUDENT =================
+    def load_students_by_class(self):
+        cls = self.class_combo.currentText()
+
+        self.student_combo.clear()
+        if hasattr(self, "r_student_combo"):
+            self.r_student_combo.clear()
+        if hasattr(self, "a_student_combo"):
+            self.a_student_combo.clear()
+
+        if cls == "Select Class":
+            return
+
+        students = get_students_by_class(cls)
+
+        self.student_combo.addItems(students)
+
+        if hasattr(self, "r_student_combo"):
+            self.r_student_combo.addItems(students)
+
+        if hasattr(self, "a_student_combo"):
+            self.a_student_combo.addItems(students)
+
+    # ================= RESULTS TAB =================
+    def results_tab(self):
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+
+        card = QFrame()
+        card.setStyleSheet("background:white; border-radius:10px;")
+        card_layout = QVBoxLayout(card)
+
+        form = QHBoxLayout()
+
+        self.r_student_combo = QComboBox()
+        self.r_student_combo.currentIndexChanged.connect(self.on_result_student_change)
+
+        self.r_subject = QComboBox()
+        self.r_subject.addItems([
+            "English","Urdu","Isl","PST","Maths",
+            "Physics","Chemistry","Computer","Economics","H.P.E"
+        ])
+
+        self.r_marks = QLineEdit()
+        self.r_marks.setPlaceholderText("Marks")
+
+        self.r_group = QComboBox()
+
+        add = QPushButton("Add")
+        add.clicked.connect(self.add_result)
+
+        form.addWidget(self.r_student_combo)
+        form.addWidget(self.r_subject)
+        form.addWidget(self.r_marks)
+        form.addWidget(self.r_group)
+        form.addWidget(add)
+
+        self.result_table = QTableWidget(0, 5)
+        self.result_table.setHorizontalHeaderLabels(
+            ["ID", "Name", "Subject", "Marks", "Group"]
+        )
+
+        card_layout.addLayout(form)
+        card_layout.addWidget(self.result_table)
+        layout.addWidget(card)
+
+        return tab
+
+    def on_result_student_change(self):
+        name = self.r_student_combo.currentText()
+        if not name:
+            return
+
+        con = get_db()
+        cur = con.cursor()
+        cur.execute("SELECT class, `student_group` FROM students WHERE name=?", (name,))
+        row = cur.fetchone()
+        con.close()
+
+        if row:
+            self.r_group.clear()
+            self.r_group.addItem(f"{row[0]} - {row[1]}")
+
+    def add_result(self):
+        con = get_db()
+        cur = con.cursor()
+        cur.execute(
+            "INSERT INTO results (student_name, subject, marks, student_group) VALUES (?,?,?,?)",
+            (
+                self.r_student_combo.currentText(),
+                self.r_subject.currentText(),
+                self.r_marks.text(),
+                self.r_group.currentText()
+            )
+        )
+        con.commit()
+        con.close()
+
+    # ================= ATTENDANCE TAB =================
+    def attendance_tab(self):
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+
+        card = QFrame()
+        card.setStyleSheet("background:white; border-radius:10px;")
+        card_layout = QVBoxLayout(card)
+
+        form = QHBoxLayout()
+
+        self.a_student_combo = QComboBox()
+        self.a_date = QLineEdit(QDate.currentDate().toString("yyyy-MM-dd"))
+        self.a_present = QCheckBox("Present")
+
+        add = QPushButton("Add")
+
+        form.addWidget(self.a_student_combo)
+        form.addWidget(self.a_date)
+        form.addWidget(self.a_present)
+        form.addWidget(add)
+
+        self.att_table = QTableWidget(0, 4)
+        self.att_table.setHorizontalHeaderLabels(
+            ["ID", "Name", "Date", "Status"]
+        )
+
+        card_layout.addLayout(form)
+        card_layout.addWidget(self.att_table)
+        layout.addWidget(card)
+
+        return tab
+
+    # ================= OPEN STUDENT =================
     def open_student_panel(self):
-        student_name = self.student_combo.currentText()
-        if student_name:
-            self.student_dashboard = StudentPanel(student_name)
+        name = self.student_combo.currentText()
+        if name:
+            self.student_dashboard = StudentPanel(name)
             self.student_dashboard.show()

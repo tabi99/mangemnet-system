@@ -29,11 +29,11 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE, password TEXT, role TEXT)""")
     cur.execute("""CREATE TABLE IF NOT EXISTS students (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, class TEXT , group_name TEXT)""")
+        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, class TEXT , student_group TEXT)""")
     cur.execute("""CREATE TABLE IF NOT EXISTS teachers (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, subject TEXT)""")
     cur.execute("""CREATE TABLE IF NOT EXISTS results (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, student_name TEXT, subject TEXT, marks TEXT, group_name TEXT)""")
+        id INTEGER PRIMARY KEY AUTOINCREMENT, student_name TEXT, subject TEXT, marks TEXT, student_group TEXT)""")
     cur.execute("""CREATE TABLE IF NOT EXISTS fees (
         id INTEGER PRIMARY KEY AUTOINCREMENT, student_name TEXT, amount TEXT, status TEXT)""")
     # cur.execute("DROP TABLE IF EXISTS attendance")
@@ -105,11 +105,11 @@ class Login(QWidget):
 
         # Logo
         logo = QLabel(); logo.setAlignment(Qt.AlignCenter)
-        pixmap = QPixmap("download.jfif")  # put your logo
+        pixmap = QPixmap("icons/download.jfif")  # put your logo
         logo.setPixmap(pixmap.scaled(100,100, Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
         # Title
-        title = QLabel("School Login"); title.setAlignment(Qt.AlignCenter)
+        title = QLabel("F.G Girls Inter Collage Login"); title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("font-size:20px; font-weight:bold; color:#2f80ed;")
 
         # Inputs
@@ -337,6 +337,56 @@ class AdminPanel(QWidget):
                 self.user_table.setItem(row, c, QTableWidgetItem(str(v)))
     # ----- STUDENTS TAB -----
     
+    def clear_student_form(self):
+        self.s_name.clear()
+        self.s_class.setCurrentIndex(0)
+        self.s_group.setCurrentIndex(0)
+
+    def clear_teacher_form(self):
+        self.t_name.clear()
+        self.t_subject.setCurrentIndex(0)
+        
+    def on_student_change(self):
+        student_name = self.r_student_combo.currentText()
+
+        if not student_name or student_name == "Select Student":
+            return
+
+        con = get_db()
+        cur = con.cursor()
+
+        # students table se class / group uthao
+        cur.execute(
+            "SELECT student_group FROM students WHERE name=?",
+            (student_name,)
+        )
+
+        row = cur.fetchone()
+        con.close()
+
+        if row:
+            group_name = row[0]
+
+            index = self.r_group.findText(group_name)
+            if index >= 0:
+                self.r_group.setCurrentIndex(index)
+            else:
+                self.r_group.addItem(group_name)
+                self.r_group.setCurrentIndex(self.r_group.count() - 1)
+                
+    def load_students_into_result_combo(self):
+        self.r_student_combo.clear()
+        self.r_student_combo.addItem("Select Student")
+
+        con = get_db()
+        cur = con.cursor()
+        cur.execute("SELECT name FROM students")
+        rows = cur.fetchall()
+        con.close()
+
+        for r in rows:
+            self.r_student_combo.addItem(r[0])
+
     def students_tab(self):
         tab=QWidget(); layout=QVBoxLayout(tab)
         card=QFrame(); card.setStyleSheet("background:white; border-radius:10px;")
@@ -346,8 +396,9 @@ class AdminPanel(QWidget):
         # Form with buttons
         form=QHBoxLayout(); form.setSpacing(10)
         self.s_name=QLineEdit(); self.s_name.setPlaceholderText("Student Name"); self.s_name.setMinimumWidth(10)
-        self.s_class=QLineEdit(); self.s_class.setPlaceholderText("Class"); self.s_class.setMinimumWidth(10)
-        self.s_group=QLineEdit(); self.s_group.setPlaceholderText("Group"); self.s_group.setMinimumWidth(10)
+        self.s_class = QComboBox(); self.s_class.addItems(["XI year (F.B)", "XII year (F.B)", "XI year (K.B)", "XII year (K.B)"]); self.s_class.setMinimumWidth(10)
+
+        self.s_group = QComboBox(); self.s_group.addItems(["P.M", "P.E", "ICS", "P.M","ARTS"]); self.s_group.setMinimumWidth(10)
 
         add=QPushButton("Add"); add.setObjectName("add"); add.setMinimumHeight(10); add.setIcon(QIcon("icons/add.png"))
         add.clicked.connect(self.add_student)
@@ -375,7 +426,7 @@ class AdminPanel(QWidget):
 
         form=QHBoxLayout(); form.setSpacing(10)
         self.t_name=QLineEdit(); self.t_name.setPlaceholderText("Teacher Name"); self.t_name.setMinimumWidth(150)
-        self.t_subject=QLineEdit(); self.t_subject.setPlaceholderText("Subject"); self.t_subject.setMinimumWidth(100)
+        self.t_subject=QComboBox(); self.t_subject.addItems(["English", "Urdu", "Isl", "PST","Maths","Physics","Chemistry","Computer", "Economics","Home Economics", "H.P.E"]); self.t_subject.setMinimumWidth(100)
 
         add=QPushButton("Add"); add.setObjectName("add"); add.setMinimumHeight(35); add.setIcon(QIcon("icons/add.png"))
         add.clicked.connect(self.add_teacher)
@@ -404,9 +455,10 @@ class AdminPanel(QWidget):
         form=QHBoxLayout(); form.setSpacing(10)
         self.r_student_combo=QComboBox(); self.r_student_combo.setPlaceholderText("Select Student")
         self.r_student_combo.setMinimumWidth(150)
-        self.r_subject=QLineEdit(); self.r_subject.setPlaceholderText("Subject")
+        self.r_student_combo.currentIndexChanged.connect(self.on_student_change)
+        self.r_subject=QComboBox(); self.r_subject.addItems(["English", "Urdu", "Isl", "PST","Maths","Physics","Chemistry","Computer", "Economics","Home Economics", "H.P.E"])
         self.r_marks=QLineEdit(); self.r_marks.setPlaceholderText("Marks")
-        self.r_group=QLineEdit(); self.r_group.setPlaceholderText("Class/Group")
+        self.r_group=QComboBox(); self.r_group.setPlaceholderText("Class/Group")
 
         add=QPushButton("Add"); add.setObjectName("add");add.setMinimumHeight(35); add.setIcon(QIcon("icons/add.png"))
         add.clicked.connect(self.add_result)
@@ -421,8 +473,11 @@ class AdminPanel(QWidget):
         self.result_table.cellClicked.connect(self.select_result)
 
         card_layout.addWidget(title); card_layout.addLayout(form); card_layout.addWidget(self.result_table)
-        layout.addWidget(card); return tab
-
+        # layout.addWidget(card); return tab
+        layout.addWidget(card)
+        self.load_students_into_result_combo()
+        return tab
+      
     # ----- FEES TAB -----
     def fees_tab(self):
         tab=QWidget(); layout=QVBoxLayout(tab)
@@ -434,7 +489,7 @@ class AdminPanel(QWidget):
         self.f_student_combo=QComboBox(); self.f_student_combo.setPlaceholderText("Select Student")
         self.f_student_combo.setMinimumWidth(150)
         self.f_amount=QLineEdit(); self.f_amount.setPlaceholderText("Amount")
-        self.f_status=QLineEdit(); self.f_status.setPlaceholderText("Status")
+        self.f_status=QComboBox(); self.f_status.addItems(["Paid", "Unpaid"]); self.f_status.setPlaceholderText("Status")
 
         add=QPushButton("Add"); add.setObjectName("add"); add.setMinimumHeight(35); add.setIcon(QIcon("icons/add.png")); add.clicked.connect(self.add_fee)
         update=QPushButton("Update"); update.setObjectName("update"); update.setMinimumHeight(35); update.setIcon(QIcon("icons/update.jfif")); update.clicked.connect(self.update_fee)
@@ -480,14 +535,29 @@ class AdminPanel(QWidget):
     # ----- RESULTS CRUD -----
     def add_result(self):
         con=get_db(); cur=con.cursor()
-        cur.execute("INSERT INTO results (student_name,subject,marks,group_name) VALUES (?,?,?,?)",
-                    (self.r_student_combo.currentText(),self.r_subject.text(),self.r_marks.text(),self.r_group.text()))
+        # cur.execute("INSERT INTO results (student_name,subject,marks,group_name) VALUES (?,?,?,?)",
+        #             (self.r_student_combo.currentText(),self.r_subject.currentText(),self.r_marks.text(),self.r_group.text()))
+        cur.execute(
+            "INSERT INTO results (student_name,subject,marks,student_group) VALUES (?,?,?,?)",
+            (
+                self.r_student_combo.currentText(),
+                self.r_subject.currentText(),
+                self.r_marks.text(),
+                self.r_group.currentText()
+            )
+        )
         con.commit(); con.close(); self.load_results()
     def update_result(self):
         if not hasattr(self,"result_id"): return
         con=get_db(); cur=con.cursor()
         cur.execute("UPDATE results SET student_name=?,subject=?,marks=?,group_name=? WHERE id=?",
-                    (self.r_student_combo.currentText(),self.r_subject.text(),self.r_marks.text(),self.r_group.text(),self.result_id))
+                    (
+            self.r_student_combo.currentText(),
+            self.r_subject.currentText(),
+            self.r_marks.text(),
+            self.r_group.currentText(),
+            self.result_id
+        ))
         con.commit(); con.close(); self.load_results()
     def delete_result(self):
         if not hasattr(self,"result_id"): return
@@ -497,8 +567,9 @@ class AdminPanel(QWidget):
     def select_result(self,row,col):
         self.result_id=int(self.result_table.item(row,0).text())
         self.r_student_combo.setCurrentText(self.result_table.item(row,1).text())
-        self.r_subject.setText(self.result_table.item(row,2).text())
+        self.r_subject.setCurrentText(self.result_table.item(row,2).text())
         self.r_marks.setText(self.result_table.item(row,3).text())
+        self.r_group.setCurrentText(self.result_table.item(row,4).text())
     def load_results(self):
         con=get_db(); cur=con.cursor()
         cur.execute("SELECT * FROM results"); rows=cur.fetchall(); con.close()
@@ -511,13 +582,13 @@ class AdminPanel(QWidget):
     def add_fee(self):
         con=get_db(); cur=con.cursor()
         cur.execute("INSERT INTO fees (student_name,amount,status) VALUES (?,?,?)",
-                    (self.f_student_combo.currentText(),self.f_amount.text(),self.f_status.text()))
+                    (self.f_student_combo.currentText(),self.f_amount.text(),self.f_status.currentText()))
         con.commit(); con.close(); self.load_fees()
     def update_fee(self):
         if not hasattr(self,"fee_id"): return
         con=get_db(); cur=con.cursor()
         cur.execute("UPDATE fees SET student_name=?,amount=?,status=? WHERE id=?",
-                    (self.f_student_combo.currentText(),self.f_amount.text(),self.f_status.text(),self.fee_id))
+                    (self.f_student_combo.currentText(),self.f_amount.text(),self.f_status.currentText(),self.fee_id))
         con.commit(); con.close(); self.load_fees()
     def delete_fee(self):
         if not hasattr(self,"fee_id"): return
@@ -573,12 +644,17 @@ class AdminPanel(QWidget):
     # ----- STUDENT CRUD -----
     def add_student(self):
         con=get_db(); cur=con.cursor()
-        cur.execute("INSERT INTO students (name,class) VALUES (?,?)",(self.s_name.text(),self.s_class.text()))
+        cur.execute("INSERT INTO students (name,class,student_group) VALUES (?,?,?)",(self.s_name.text(),self.s_class.currentText(),self.s_group.currentText()))
         con.commit(); con.close(); self.load_students()
+        self.clear_student_form()
     def update_student(self):
         if not hasattr(self,"student_id"): return
         con=get_db(); cur=con.cursor()
-        cur.execute("UPDATE students SET name=?,class=? WHERE id=?",(self.s_name.text(),self.s_class.text(),self.student_id))
+        # cur.execute("UPDATE students SET name=?,class=?,group=? WHERE id=?",(self.s_name.text(),self.s_class.currentText(),self.s_group.currentText(),self.student_id))
+        cur.execute(
+            "UPDATE students SET name=?,class=?,student_group=? WHERE id=?",
+            (self.s_name.text(),self.s_class.currentText(),self.s_group.currentText(),self.student_id)
+        )
         con.commit(); con.close(); self.load_students()
     def delete_student(self):
         if not hasattr(self,"student_id"): return
@@ -588,7 +664,9 @@ class AdminPanel(QWidget):
     def select_student(self,row,col):
         self.student_id=int(self.student_table.item(row,0).text())
         self.s_name.setText(self.student_table.item(row,1).text())
-        self.s_class.setText(self.student_table.item(row,2).text())
+        # self.s_class.setText(self.student_table.item(row,2).text())
+        self.s_class.setCurrentText(self.student_table.item(row,2).text())
+        self.s_group.setCurrentText(self.student_table.item(row,3).text())
     def load_students(self):
         con=get_db(); cur=con.cursor()
         cur.execute("SELECT * FROM students"); rows=cur.fetchall(); con.close()
@@ -610,12 +688,13 @@ class AdminPanel(QWidget):
     # ----- TEACHER CRUD -----
     def add_teacher(self):
         con=get_db(); cur=con.cursor()
-        cur.execute("INSERT INTO teachers (name,subject) VALUES (?,?)",(self.t_name.text(),self.t_subject.text()))
+        cur.execute("INSERT INTO teachers (name,subject) VALUES (?,?)",(self.t_name.text(),self.t_subject.currentText()))
         con.commit(); con.close(); self.load_teachers()
+        self.clear_teacher_form()
     def update_teacher(self):
         if not hasattr(self,"teacher_id"): return
         con=get_db(); cur=con.cursor()
-        cur.execute("UPDATE teachers SET name=?,subject=? WHERE id=?",(self.t_name.text(),self.t_subject.text(),self.teacher_id))
+        cur.execute("UPDATE teachers SET name=?,subject=? WHERE id=?",(self.t_name.text(),self.t_subject.currentText(),self.teacher_id))
         con.commit(); con.close(); self.load_teachers()
     def delete_teacher(self):
         if not hasattr(self,"teacher_id"): return
